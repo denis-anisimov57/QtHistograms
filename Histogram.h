@@ -2,8 +2,14 @@
 #define HISTOGRAM_H
 
 #include <vector>
+#include <map>
 #include "qcustomplot/qcustomplot.h"
 
+struct Val {
+    double val;
+    int sourcenum;
+    int msgnum;
+};
 
 class Interval {
     public:
@@ -11,14 +17,12 @@ class Interval {
         Interval(double start, double end);
         ~Interval() = default;
         bool inInterval(double val);
+        bool addMsg(Val val);
+        unsigned long long msgCount();
         double start = 0;
         double end = 0;
-};
-
-struct Val {
-    double val;
-    int sourcenum;
-    int msgnum;
+    private:
+        std::map<int, int> msgnumbers; // <msgnum, count in interval>
 };
 
 class Histogram {
