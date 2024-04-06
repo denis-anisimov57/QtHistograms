@@ -28,8 +28,11 @@ bool Interval::addMsg(Val val) {
     return false;
 }
 
+double Interval::length() {
+    return end - start;
+}
+
 unsigned long long Interval::msgCount() {
-//    return std::accumulate(msgnumbers.begin(), msgnumbers.end(), []())//
     unsigned long long count = 0;
     for(auto it = msgnumbers.begin(); it != msgnumbers.end(); it++) {
         count += it->second;
@@ -40,9 +43,29 @@ unsigned long long Interval::msgCount() {
 Histogram::Histogram(QCustomPlot* customPlot) {
     this->customPlot = customPlot;
     data = std::vector<Val>();
+    customPlot->legend->setVisible(true);
+    customPlot->legend->setSelectableParts(QCPLegend::spItems);
+    customPlot->legend->setWrap(10);
 }
 
 Histogram::~Histogram() {};
+
+void Histogram::loadPlotData(const Plot plotData) {
+    this->data = plotData.vec;
+    double max = data[0].val;
+    for(Val val : data) {
+        if(val.val > max) {
+            max = val.val;
+        }
+    }
+    double intCount = (max - plotData.start) / plotData.interval;
+    if(intCount - int(intCount) != 0) intCount++;
+    this->intervals = std::vector<Interval>(intCount);
+    intervals[0] = Interval(plotData.start, plotData.start + plotData.interval);
+    for(unsigned long long i = 1; i < intervals.size(); i++) {
+        intervals[i] = Interval(intervals[i - 1].end, intervals[i - 1].end + plotData.interval);
+    }
+}
 
 void Histogram::loadIntervals(const std::vector<Interval> intervals) {
     this->intervals = intervals;
@@ -56,20 +79,31 @@ void Histogram::drawHistogram() {
     std::vector<QCPBars*> bars(intervals.size());
     std::vector<int> ticks(intervals.size());
     std::vector<int> values(intervals.size());
-    for(int i = 0; i < intervals.size(); i++) {
-        double tick = 0, value = 0;
-        for(int j = 0; j < data.size(); j++) {
-//            if(intervals[i].inInterval(data[j].val)) {
-//                value++;
-//            }
+    for(unsigned long long i = 0; i < intervals.size(); i++) {
+        double tick = 0;
+        for(unsigned long long j = 0; j < data.size(); j++) {
             intervals[i].addMsg(data[j]);
         }
         bars[i] = new QCPBars(customPlot->xAxis, customPlot->yAxis);
         bars[i]->setWidth(intervals[i].end - intervals[i].start);
         tick = (intervals[i].start + intervals[i].end) / 2;
         bars[i]->setData({tick}, {intervals[i].msgCount() + 0.});
+        bars[i]->setName(QString::number(tick));
     }
     customPlot->xAxis->setLabel("x");
     customPlot->yAxis->setLabel("y");
-    customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+
+    QSharedPointer<QCPAxisTickerFixed> fixedYTicker(new QCPAxisTickerFixed);
+    customPlot->yAxis->setTicker(fixedYTicker);
+    fixedYTicker->setTickStep(1.0);
+    fixedYTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
+
+    QSharedPointer<QCPAxisTickerFixed> fixedXTicker(new QCPAxisTickerFixed);
+    customPlot->xAxis->setTicker(fixedXTicker);
+    fixedXTicker->setTickStep(intervals[0].length());
+    fixedXTicker->setTickOrigin(intervals[0].start);
+    fixedXTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
+
+    customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables | QCP::iSelectLegend);
+
 }

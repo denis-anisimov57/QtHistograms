@@ -19,5 +19,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
+private slots:
+    void selectionChanged();
 };
 #endif // MAINWINDOW_H

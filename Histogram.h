@@ -11,6 +11,12 @@ struct Val {
     int msgnum;
 };
 
+struct Plot {
+    std::vector<Val> vec;
+    double start;
+    double interval;
+};
+
 class Interval {
     public:
         Interval() = default;
@@ -21,6 +27,7 @@ class Interval {
         unsigned long long msgCount();
         double start = 0;
         double end = 0;
+        double length();
     private:
         std::map<int, int> msgnumbers; // <msgnum, count in interval>
 };
@@ -30,6 +37,7 @@ class Histogram {
         Histogram(QCustomPlot* customPlot);
 
         void loadIntervals(const std::vector<Interval> interavals);
+        void loadPlotData(const Plot);
         void loadData(const std::vector<Val> data);
         void drawHistogram();
 
@@ -38,7 +46,6 @@ class Histogram {
     private:
         std::vector<Val> data;
         std::vector<Interval> intervals;
-        double barWidth = 0.5;
         QCustomPlot* customPlot = nullptr;
 };
 
