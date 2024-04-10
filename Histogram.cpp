@@ -14,15 +14,17 @@ bool Interval::inInterval(double val) {
     return ((val > start) && (val <= end));
 }
 
-bool Interval::addMsg(Val val) {
+bool Interval::addMsg(Val val, int sourcenum) {
     if(inInterval(val.val)) {
-        if(msgnumbers.count(val.msgnum)) {
-            msgnumbers[val.msgnum]++;
+        if(!msgnumbers.count(sourcenum)) {
+            msgnumbers[sourcenum] = std::set<int>();
+        }
+        if(msgnumbers[sourcenum].count(val.msgnum)) {
+            qDebug() << "Interval[" << start << ", " << end << "]: Trying to add msgnum = " << val.msgnum << " which already exists\n";
         }
         else {
-            msgnumbers[val.msgnum] = 1;
+            msgnumbers[sourcenum].insert(val.msgnum);
         }
-
         return true;
     }
     return false;
@@ -35,7 +37,7 @@ double Interval::length() {
 unsigned long long Interval::msgCount() {
     unsigned long long count = 0;
     for(auto it = msgnumbers.begin(); it != msgnumbers.end(); it++) {
-        count += it->second;
+        count += it->second.size();
     }
     return count;
 }
@@ -60,10 +62,21 @@ void Histogram::loadPlotData(const Plot plotData) {
     }
     double intCount = (max - plotData.start) / plotData.interval;
     if(intCount - int(intCount) != 0) intCount++;
+
     this->intervals = std::vector<Interval>(intCount);
+
+    //first interval
     intervals[0] = Interval(plotData.start, plotData.start + plotData.interval);
+    for(unsigned long long j = 0; j < data.size(); j++) {
+        intervals[0].addMsg(data[j], plotData.sourcenum);
+    }
+
+    //other intervals
     for(unsigned long long i = 1; i < intervals.size(); i++) {
         intervals[i] = Interval(intervals[i - 1].end, intervals[i - 1].end + plotData.interval);
+        for(unsigned long long j = 0; j < data.size(); j++) {
+            intervals[i].addMsg(data[j], plotData.sourcenum);
+        }
     }
 }
 
@@ -81,9 +94,9 @@ void Histogram::drawHistogram() {
     std::vector<int> values(intervals.size());
     for(unsigned long long i = 0; i < intervals.size(); i++) {
         double tick = 0;
-        for(unsigned long long j = 0; j < data.size(); j++) {
-            intervals[i].addMsg(data[j]);
-        }
+//        for(unsigned long long j = 0; j < data.size(); j++) {
+//            intervals[i].addMsg(data[j]);
+//        }
         bars[i] = new QCPBars(customPlot->xAxis, customPlot->yAxis);
         bars[i]->setWidth(intervals[i].end - intervals[i].start);
         tick = (intervals[i].start + intervals[i].end) / 2;

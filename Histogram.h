@@ -2,12 +2,13 @@
 #define HISTOGRAM_H
 
 #include <vector>
+#include <QDebug>
 #include <map>
+#include <set>
 #include "qcustomplot/qcustomplot.h"
 
 struct Val {
     double val;
-    int sourcenum;
     int msgnum;
 };
 
@@ -15,6 +16,7 @@ struct Plot {
     std::vector<Val> vec;
     double start;
     double interval;
+    int sourcenum;
 };
 
 class Interval {
@@ -23,13 +25,13 @@ class Interval {
         Interval(double start, double end);
         ~Interval() = default;
         bool inInterval(double val);
-        bool addMsg(Val val);
+        bool addMsg(Val val, int sourcenum);
         unsigned long long msgCount();
         double start = 0;
         double end = 0;
         double length();
     private:
-        std::map<int, int> msgnumbers; // <msgnum, count in interval>
+        std::map<int, std::set<int>> msgnumbers; // <sourcenum, set with msgnums>
 };
 
 class Histogram {

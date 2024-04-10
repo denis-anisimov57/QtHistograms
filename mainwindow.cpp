@@ -10,10 +10,11 @@ MainWindow::MainWindow(QWidget *parent)
     std::vector<Val> data(0);
     std::vector<Interval> intervals(0);
     for(int i = 0; i < 10; i++) {
-        Val v = {double(i * i), i, i};
+        Val v = {double(i * i), i};
         data.push_back(v);
     }
-    Plot P = {data, 1, 10};
+    data.push_back({26, 5});
+    Plot P = {data, 1, 10, 1};
     H.loadPlotData(P);
     H.drawHistogram();
     connect(ui->customPlot, &QCustomPlot::selectionChangedByUser, this, &MainWindow::selectionChanged);
