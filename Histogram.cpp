@@ -127,23 +127,34 @@ void Histogram::drawHistogram() {
     fixedXTicker->setTickOrigin(intervals[0].start);
     fixedXTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
 
-    customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables | QCP::iSelectLegend);
+    customPlot->setInteractions(QCP::iRangeDrag |
+                                QCP::iRangeZoom |
+                                QCP::iSelectPlottables |
+                                QCP::iSelectLegend |
+                                QCP::iMultiSelect);
 }
 
 void Histogram::getData() {
     qDebug() << "Get to the slot!\n";
+    std::map<int, std::set<int>> plotData;
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
         if(bar->selected()) {
             unsigned long long intervalIndex = int((bar->name().toDouble() - intervals[0].start) / bar->width());
             auto data = intervals[intervalIndex].getIntervalData();
-            for(auto src : data) {
-                qDebug() << "Source: " << src.first << "\nMessage numbers: ";
-                for(auto msgnum : src.second) {
-                    qDebug() << msgnum << " ";
+            for(auto& src : data) {
+                for(auto& msgnum : src.second) {
+                    plotData[src.first].insert(msgnum);
                 }
-                qDebug() << "\n";
             }
         }
     }
+    for(auto& src : plotData) {
+        qDebug() << "Source: " << src.first << "\nMessage numbers: ";
+        for(auto& msgnum : src.second) {
+            qDebug() << msgnum << " ";
+        }
+        qDebug() << "\n";
+    }
+    emit dataSignal(plotData);
 }

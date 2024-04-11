@@ -58,6 +58,8 @@ public:
         QCustomPlot* customPlot = nullptr;
     public slots:
         void getData();
+    signals:
+        void dataSignal(std::map<int, std::set<int>>);
 };
 
 #endif // HISTOGRAM_H

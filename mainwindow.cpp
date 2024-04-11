@@ -1,5 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QSignalSpy>
+#include <QTest>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -18,12 +20,12 @@ MainWindow::MainWindow(QWidget *parent)
     H.loadPlotData(P);
     H.drawHistogram();
 
+//    QSignalSpy spy(&H, &Histogram::dataSignal);
+
     connect(ui->customPlot, &QCustomPlot::selectionChangedByUser, this, &MainWindow::selectionChanged);
 
     ui->customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->customPlot, &QCustomPlot::customContextMenuRequested, this, &MainWindow::showMenu);
-
-
 }
 
 void MainWindow::showMenu(const QPoint& pos) {
@@ -35,6 +37,7 @@ void MainWindow::showMenu(const QPoint& pos) {
         QCPBars* bar = dynamic_cast<QCPBars*>(ui->customPlot->plottable(i));
         if(bar->selected()) {
             contextMenu.exec(ui->customPlot->mapToGlobal(pos));
+            break;
         }
     }
 }
