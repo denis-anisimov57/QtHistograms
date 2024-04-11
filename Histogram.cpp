@@ -94,9 +94,6 @@ void Histogram::drawHistogram() {
     std::vector<int> values(intervals.size());
     for(unsigned long long i = 0; i < intervals.size(); i++) {
         double tick = 0;
-//        for(unsigned long long j = 0; j < data.size(); j++) {
-//            intervals[i].addMsg(data[j]);
-//        }
         bars[i] = new QCPBars(customPlot->xAxis, customPlot->yAxis);
         bars[i]->setWidth(intervals[i].end - intervals[i].start);
         tick = (intervals[i].start + intervals[i].end) / 2;
