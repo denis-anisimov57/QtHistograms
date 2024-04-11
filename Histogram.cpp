@@ -1,4 +1,5 @@
 #include "Histogram.h"
+#include <QDebug>
 
 Interval::Interval(double start, double end) {
     if(start > end) {
@@ -10,7 +11,7 @@ Interval::Interval(double start, double end) {
     this->end = end;
 }
 
-bool Interval::inInterval(double val) {
+bool Interval::inInterval(double val) const {
     return ((val > start) && (val <= end));
 }
 
@@ -30,16 +31,20 @@ bool Interval::addMsg(Val val, int sourcenum) {
     return false;
 }
 
-double Interval::length() {
+double Interval::length() const {
     return end - start;
 }
 
-unsigned long long Interval::msgCount() {
+unsigned long long Interval::msgCount() const {
     unsigned long long count = 0;
     for(auto it = msgnumbers.begin(); it != msgnumbers.end(); it++) {
         count += it->second.size();
     }
     return count;
+}
+
+std::map<int, std::set<int>> Interval::getIntervalData() const {
+    return msgnumbers;
 }
 
 Histogram::Histogram(QCustomPlot* customPlot) {
@@ -51,6 +56,14 @@ Histogram::Histogram(QCustomPlot* customPlot) {
 }
 
 Histogram::~Histogram() {};
+
+void Histogram::setPlot(QCustomPlot *customPlot) {
+    this->customPlot = customPlot;
+    data = std::vector<Val>();
+    customPlot->legend->setVisible(true);
+    customPlot->legend->setSelectableParts(QCPLegend::spItems);
+    customPlot->legend->setWrap(10);
+}
 
 void Histogram::loadPlotData(const Plot plotData) {
     this->data = plotData.vec;
@@ -95,7 +108,7 @@ void Histogram::drawHistogram() {
     for(unsigned long long i = 0; i < intervals.size(); i++) {
         double tick = 0;
         bars[i] = new QCPBars(customPlot->xAxis, customPlot->yAxis);
-        bars[i]->setWidth(intervals[i].end - intervals[i].start);
+        bars[i]->setWidth(intervals[i].length());
         tick = (intervals[i].start + intervals[i].end) / 2;
         bars[i]->setData({tick}, {intervals[i].msgCount() + 0.});
         bars[i]->setName(QString::number(tick));
@@ -115,5 +128,22 @@ void Histogram::drawHistogram() {
     fixedXTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
 
     customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables | QCP::iSelectLegend);
+}
 
+void Histogram::getData() {
+    qDebug() << "Get to the slot!\n";
+    for(int i = 0; i < customPlot->plottableCount(); i++) {
+        QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
+        if(bar->selected()) {
+            unsigned long long intervalIndex = int((bar->name().toDouble() - intervals[0].start) / bar->width());
+            auto data = intervals[intervalIndex].getIntervalData();
+            for(auto src : data) {
+                qDebug() << "Source: " << src.first << "\nMessage numbers: ";
+                for(auto msgnum : src.second) {
+                    qDebug() << msgnum << " ";
+                }
+                qDebug() << "\n";
+            }
+        }
+    }
 }

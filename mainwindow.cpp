@@ -6,7 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    Histogram H(ui->customPlot);
+    H.setPlot(ui->customPlot);
     std::vector<Val> data(0);
     std::vector<Interval> intervals(0);
     for(int i = 0; i < 10; i++) {
@@ -17,27 +17,26 @@ MainWindow::MainWindow(QWidget *parent)
     Plot P = {data, 1, 10, 1};
     H.loadPlotData(P);
     H.drawHistogram();
+
     connect(ui->customPlot, &QCustomPlot::selectionChangedByUser, this, &MainWindow::selectionChanged);
 
     ui->customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->customPlot, &QCustomPlot::customContextMenuRequested, this, &MainWindow::showMenu);
+
+
 }
 
 void MainWindow::showMenu(const QPoint& pos) {
-    QMenu contextMenu(tr("Context menu"), this);
+    QMenu contextMenu("Context menu", this);
     QAction act1("Show table", this);
     contextMenu.addAction(&act1);
-    connect(&act1, &QAction::triggered, this, &MainWindow::tableSignal);
+    connect(&act1, &QAction::triggered, &H, &Histogram::getData);
     for(int i = 0; i < ui->customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(ui->customPlot->plottable(i));
         if(bar->selected()) {
             contextMenu.exec(ui->customPlot->mapToGlobal(pos));
         }
     }
-}
-
-void MainWindow::tableSignal() {
-    qDebug() << "selected action!\n";
 }
 
 void MainWindow::selectionChanged() {

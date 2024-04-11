@@ -19,9 +19,9 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    Histogram H;
 private slots:
     void selectionChanged();
     void showMenu(const QPoint& pos);
-    void tableSignal();
 };
 #endif // MAINWINDOW_H

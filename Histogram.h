@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <QDebug>
+#include <QObject>
 #include <map>
 #include <set>
 #include "qcustomplot/qcustomplot.h"
@@ -24,19 +25,25 @@ class Interval {
         Interval() = default;
         Interval(double start, double end);
         ~Interval() = default;
-        bool inInterval(double val);
+
+        bool inInterval(double val) const;
         bool addMsg(Val val, int sourcenum);
-        unsigned long long msgCount();
         double start = 0;
         double end = 0;
-        double length();
+
+        double length() const;
+        unsigned long long msgCount() const;
+        std::map<int, std::set<int>> getIntervalData() const;
     private:
         std::map<int, std::set<int>> msgnumbers; // <sourcenum, set with msgnums>
 };
 
-class Histogram {
-    public:
+class Histogram : public QObject {
+    Q_OBJECT
+public:
         Histogram(QCustomPlot* customPlot);
+        Histogram() = default;
+        void setPlot(QCustomPlot* customPlot);
 
         void loadIntervals(const std::vector<Interval> interavals);
         void loadPlotData(const Plot);
@@ -49,6 +56,8 @@ class Histogram {
         std::vector<Val> data;
         std::vector<Interval> intervals;
         QCustomPlot* customPlot = nullptr;
+    public slots:
+        void getData();
 };
 
 #endif // HISTOGRAM_H
