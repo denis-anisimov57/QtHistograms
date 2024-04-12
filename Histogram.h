@@ -8,6 +8,9 @@
 #include <set>
 #include "qcustomplot/qcustomplot.h"
 
+using MsgNumbersMap = std::map<int, std::set<int>>;
+Q_DECLARE_METATYPE(MsgNumbersMap);
+
 struct Val {
     double val;
     int msgnum;
@@ -33,9 +36,9 @@ class Interval {
 
         double length() const;
         unsigned long long msgCount() const;
-        std::map<int, std::set<int>> getIntervalData() const;
+        MsgNumbersMap getIntervalData() const;
     private:
-        std::map<int, std::set<int>> msgnumbers; // <sourcenum, set with msgnums>
+        MsgNumbersMap msgnumbers; // <sourcenum, set with msgnums>
 };
 
 class Histogram : public QObject {
@@ -59,7 +62,7 @@ public:
     public slots:
         void getData();
     signals:
-        void dataSignal(std::map<int, std::set<int>>);
+        void dataSignal(MsgNumbersMap);
 };
 
 #endif // HISTOGRAM_H

@@ -1,5 +1,4 @@
 #include "Histogram.h"
-#include <QDebug>
 
 Interval::Interval(double start, double end) {
     if(start > end) {
@@ -43,7 +42,7 @@ unsigned long long Interval::msgCount() const {
     return count;
 }
 
-std::map<int, std::set<int>> Interval::getIntervalData() const {
+MsgNumbersMap Interval::getIntervalData() const {
     return msgnumbers;
 }
 
@@ -136,7 +135,7 @@ void Histogram::drawHistogram() {
 
 void Histogram::getData() {
     qDebug() << "Get to the slot!\n";
-    std::map<int, std::set<int>> plotData;
+    MsgNumbersMap plotData;
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
         if(bar->selected()) {
@@ -148,13 +147,6 @@ void Histogram::getData() {
                 }
             }
         }
-    }
-    for(auto& src : plotData) {
-        qDebug() << "Source: " << src.first << "\nMessage numbers: ";
-        for(auto& msgnum : src.second) {
-            qDebug() << msgnum << " ";
-        }
-        qDebug() << "\n";
     }
     emit dataSignal(plotData);
 }

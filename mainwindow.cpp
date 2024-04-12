@@ -9,18 +9,24 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     H.setPlot(ui->customPlot);
+
     std::vector<Val> data(0);
     std::vector<Interval> intervals(0);
+    int sourcenum = 1;
+    double start = 1;
+    double intervalWidth = 10;
+
     for(int i = 0; i < 10; i++) {
         Val v = {double(i * i), i};
         data.push_back(v);
     }
+
+    //test adding existing msgnum
     data.push_back({26, 5});
-    Plot P = {data, 1, 10, 1};
+
+    Plot P = {data, start, intervalWidth, sourcenum};
     H.loadPlotData(P);
     H.drawHistogram();
-
-//    QSignalSpy spy(&H, &Histogram::dataSignal);
 
     connect(ui->customPlot, &QCustomPlot::selectionChangedByUser, this, &MainWindow::selectionChanged);
 
@@ -32,12 +38,27 @@ void MainWindow::showMenu(const QPoint& pos) {
     QMenu contextMenu("Context menu", this);
     QAction act1("Show table", this);
     contextMenu.addAction(&act1);
+
+    QSignalSpy spy(&H, &Histogram::dataSignal);
+
     connect(&act1, &QAction::triggered, &H, &Histogram::getData);
     for(int i = 0; i < ui->customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(ui->customPlot->plottable(i));
         if(bar->selected()) {
             contextMenu.exec(ui->customPlot->mapToGlobal(pos));
             break;
+        }
+    }
+
+    //testing recieved data from signal
+    if(spy.count()) {
+        MsgNumbersMap args = spy.takeFirst().at(0).value<MsgNumbersMap>();
+        for(auto& src : args) {
+            qDebug() << "(Signal)Source: " << src.first << "\n(Signal)Message numbers: ";
+            for(auto& msgnum : src.second) {
+                qDebug() << msgnum << " ";
+            }
+            qDebug() << "\n";
         }
     }
 }
