@@ -59,11 +59,11 @@ void MainWindow::showMenu(const QPoint& pos) {
     if(spy.count()) {
         MsgNumbersMap args = spy.takeFirst().at(0).value<MsgNumbersMap>();
         for(auto& src : args) {
-            //qDebug() << "(Signal)Source: " << src.first << "\n(Signal)Message numbers: ";
             for(auto& msgnum : src.second) {
                 qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
             }
         }
+        qDebug() << "\n";
     }
 }
 

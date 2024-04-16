@@ -146,7 +146,7 @@ void Histogram::getData() {
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
         if(bar->selected()) {
-            unsigned long long intervalIndex = int((bar->name().toDouble() - allData.start) / bar->width());
+            unsigned long long intervalIndex = int((bar->data()->at(0)->mainKey() - allData.start) / bar->width());
             auto data = intervals[intervalIndex].getIntervalData();
             for(auto& src : data) {
                 for(auto& msgnum : src.second) {
