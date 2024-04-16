@@ -8,11 +8,10 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    H.setPlot(ui->customPlot);
+    H.setUIPlot(ui->customPlot);
 
     std::vector<Val> data(0);
     std::vector<Interval> intervals(0);
-    int sourcenum = 1;
     double start = 1;
     double intervalWidth = 10;
 
@@ -21,11 +20,17 @@ MainWindow::MainWindow(QWidget *parent)
         data.push_back(v);
     }
 
+    H.setIntervals(start, intervalWidth);
+    H.addPlot({data, 1});
+
     //test adding existing msgnum
     data.push_back({26, 5});
+    for(int i = 10; i < 16; i++) {
+        Val v = {double(i * i), i};
+        data.push_back(v);
+    }
+    H.addPlot({data, 2});
 
-    Plot P = {data, start, intervalWidth, sourcenum};
-    H.loadPlotData(P);
     H.drawHistogram();
 
     connect(ui->customPlot, &QCustomPlot::selectionChangedByUser, this, &MainWindow::selectionChanged);
@@ -54,11 +59,10 @@ void MainWindow::showMenu(const QPoint& pos) {
     if(spy.count()) {
         MsgNumbersMap args = spy.takeFirst().at(0).value<MsgNumbersMap>();
         for(auto& src : args) {
-            qDebug() << "(Signal)Source: " << src.first << "\n(Signal)Message numbers: ";
+            //qDebug() << "(Signal)Source: " << src.first << "\n(Signal)Message numbers: ";
             for(auto& msgnum : src.second) {
-                qDebug() << msgnum << " ";
+                qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
             }
-            qDebug() << "\n";
         }
     }
 }

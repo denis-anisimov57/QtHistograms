@@ -48,7 +48,8 @@ MsgNumbersMap Interval::getIntervalData() const {
 
 Histogram::Histogram(QCustomPlot* customPlot) {
     this->customPlot = customPlot;
-    data = std::vector<Val>();
+    allData = AllPlotInfo();
+    intervals = std::vector<Interval>();
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
     customPlot->legend->setWrap(10);
@@ -56,48 +57,55 @@ Histogram::Histogram(QCustomPlot* customPlot) {
 
 Histogram::~Histogram() {};
 
-void Histogram::setPlot(QCustomPlot *customPlot) {
+void Histogram::setUIPlot(QCustomPlot *customPlot) {
     this->customPlot = customPlot;
-    data = std::vector<Val>();
+    allData = AllPlotInfo();
+    intervals = std::vector<Interval>();
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
     customPlot->legend->setWrap(10);
 }
 
-void Histogram::loadPlotData(const Plot plotData) {
-    this->data = plotData.vec;
+void Histogram::addPlot(const Plot plotData) {
+    if(allData.interval <= 0) {
+        throw(std::runtime_error("Invalid interval length"));//???
+    }
+    allData.PlotVec.push_back(plotData);
+    std::vector<Val> data = plotData.vec;
     double max = data[0].val;
     for(Val val : data) {
         if(val.val > max) {
             max = val.val;
         }
     }
-    double intCount = (max - plotData.start) / plotData.interval;
-    if(intCount - int(intCount) != 0) intCount++;
-
-    this->intervals = std::vector<Interval>(intCount);
+    if(intervals.empty() || max > intervals[intervals.size() - 1].end) {
+        double intCount = (max - allData.start) / allData.interval;
+        if(intCount - int(intCount) != 0) intCount++;
+        this->intervals.resize(intCount);
+    }
 
     //first interval
-    intervals[0] = Interval(plotData.start, plotData.start + plotData.interval);
+    if(!intervals[0].length()) {
+        intervals[0] = Interval(allData.start, allData.start + allData.interval);
+    }
     for(unsigned long long j = 0; j < data.size(); j++) {
         intervals[0].addMsg(data[j], plotData.sourcenum);
     }
 
     //other intervals
     for(unsigned long long i = 1; i < intervals.size(); i++) {
-        intervals[i] = Interval(intervals[i - 1].end, intervals[i - 1].end + plotData.interval);
+        if(!intervals[i].length()) {
+            intervals[i] = Interval(intervals[i - 1].end, intervals[i - 1].end + allData.interval);
+        }
         for(unsigned long long j = 0; j < data.size(); j++) {
             intervals[i].addMsg(data[j], plotData.sourcenum);
         }
     }
 }
 
-void Histogram::loadIntervals(const std::vector<Interval> intervals) {
-    this->intervals = intervals;
-}
-
-void Histogram::loadData(std::vector<Val> data) {
-    this->data = data;
+void Histogram::setIntervals(const double start, const double interval) {
+    allData.start = start;
+    allData.interval = interval;
 }
 
 void Histogram::drawHistogram() {
@@ -134,12 +142,11 @@ void Histogram::drawHistogram() {
 }
 
 void Histogram::getData() {
-    qDebug() << "Get to the slot!\n";
     MsgNumbersMap plotData;
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
         if(bar->selected()) {
-            unsigned long long intervalIndex = int((bar->name().toDouble() - intervals[0].start) / bar->width());
+            unsigned long long intervalIndex = int((bar->name().toDouble() - allData.start) / bar->width());
             auto data = intervals[intervalIndex].getIntervalData();
             for(auto& src : data) {
                 for(auto& msgnum : src.second) {

@@ -8,7 +8,7 @@
 #include <set>
 #include "qcustomplot/qcustomplot.h"
 
-using MsgNumbersMap = std::map<int, std::set<int>>;
+using MsgNumbersMap = std::map<int, std::set<int>>; // <sourcenum, set with msgnums>
 Q_DECLARE_METATYPE(MsgNumbersMap);
 
 struct Val {
@@ -18,9 +18,15 @@ struct Val {
 
 struct Plot {
     std::vector<Val> vec;
-    double start;
-    double interval;
     int sourcenum;
+};
+
+struct AllPlotInfo
+{
+    double start = 0;
+    double interval = 0;
+
+    std::vector<Plot> PlotVec = std::vector<Plot>();
 };
 
 class Interval {
@@ -38,7 +44,7 @@ class Interval {
         unsigned long long msgCount() const;
         MsgNumbersMap getIntervalData() const;
     private:
-        MsgNumbersMap msgnumbers; // <sourcenum, set with msgnums>
+        MsgNumbersMap msgnumbers;
 };
 
 class Histogram : public QObject {
@@ -46,17 +52,16 @@ class Histogram : public QObject {
 public:
         Histogram(QCustomPlot* customPlot);
         Histogram() = default;
-        void setPlot(QCustomPlot* customPlot);
+        void setUIPlot(QCustomPlot* customPlot);
 
-        void loadIntervals(const std::vector<Interval> interavals);
-        void loadPlotData(const Plot);
-        void loadData(const std::vector<Val> data);
+        void setIntervals(const double start, const double interval);
+        void addPlot(const Plot);
         void drawHistogram();
 
         ~Histogram();
 
     private:
-        std::vector<Val> data;
+        AllPlotInfo allData;
         std::vector<Interval> intervals;
         QCustomPlot* customPlot = nullptr;
     public slots:
