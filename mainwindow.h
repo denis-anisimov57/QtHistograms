@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include "qcustomplot/qcustomplot.h"
 #include "Histogram.h"
+#include <QKeyEvent>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -21,6 +22,7 @@ private:
     Ui::MainWindow *ui;
     Histogram H;
 private slots:
+    void keyPressEvent(QKeyEvent* event) override;
     void selectionChanged();
     void showMenu(const QPoint& pos);
 };

@@ -7,6 +7,7 @@
 #include <map>
 #include <set>
 #include "qcustomplot/qcustomplot.h"
+#include <MyQCP.h>
 
 using MsgNumbersMap = std::map<int, std::set<int>>; // <sourcenum, set with msgnums>
 Q_DECLARE_METATYPE(MsgNumbersMap);
@@ -58,8 +59,9 @@ public:
         void addPlot(const Plot);
         void drawHistogram();
 
-        ~Histogram();
+        void move(int key);
 
+        ~Histogram();
     private:
         AllPlotInfo allData;
         std::vector<Interval> intervals;

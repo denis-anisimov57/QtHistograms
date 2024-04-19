@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include <QSignalSpy>
 #include <QTest>
+#include <QKeyEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -37,6 +38,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(ui->customPlot, &QCustomPlot::customContextMenuRequested, this, &MainWindow::showMenu);
+
+
+}
+
+void MainWindow::keyPressEvent(QKeyEvent *event) {
+    H.move(event->key());
 }
 
 void MainWindow::showMenu(const QPoint& pos) {

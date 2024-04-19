@@ -57,6 +57,37 @@ Histogram::Histogram(QCustomPlot* customPlot) {
 
 Histogram::~Histogram() {};
 
+void Histogram::move(int key) {
+    QCPAxis* x = customPlot->xAxis;
+    QCPAxis* y = customPlot->yAxis;
+    double moveSpeed = 0.01;
+    double scale = 1.01;
+    if(key == Qt::Key_Left || key == Qt::Key_A) {
+        x->moveRange(-moveSpeed * x->range().size());
+    }
+    if(key == Qt::Key_Right || key == Qt::Key_D) {
+        x->moveRange(moveSpeed * x->range().size());
+    }
+    if(key == Qt::Key_Up || key == Qt::Key_W) {
+        y->moveRange(moveSpeed * y->range().size());
+    }
+    if(key == Qt::Key_Down || key == Qt::Key_S) {
+        y->moveRange(-moveSpeed * y->range().size());
+    }
+    if(key == Qt::Key_Minus) {
+        x->scaleRange(scale);
+        y->scaleRange(scale);
+    }
+    if(key == Qt::Key_Plus) {
+        x->scaleRange(1 / scale);
+        y->scaleRange(1 / scale);
+    }
+    if(key == Qt::Key_0) {
+        customPlot->rescaleAxes();
+    }
+    customPlot->replot();
+}
+
 void Histogram::setUIPlot(QCustomPlot *customPlot) {
     this->customPlot = customPlot;
     allData = AllPlotInfo();
@@ -68,7 +99,7 @@ void Histogram::setUIPlot(QCustomPlot *customPlot) {
 
 void Histogram::addPlot(const Plot plotData) {
     if(allData.interval <= 0) {
-        throw(std::runtime_error("Invalid interval length"));//???
+        throw(std::runtime_error("Invalid interval length"));
     }
     allData.PlotVec.push_back(plotData);
     std::vector<Val> data = plotData.vec;
@@ -133,6 +164,8 @@ void Histogram::drawHistogram() {
     fixedXTicker->setTickStep(intervals[0].length());
     fixedXTicker->setTickOrigin(intervals[0].start);
     fixedXTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
+
+    customPlot->rescaleAxes();
 
     customPlot->setInteractions(QCP::iRangeDrag |
                                 QCP::iRangeZoom |
