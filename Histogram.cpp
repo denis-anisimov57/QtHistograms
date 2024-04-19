@@ -1,4 +1,6 @@
 #include "Histogram.h"
+#include <QSignalSpy>
+#include <QMenu>
 
 Interval::Interval(double start, double end) {
     if(start > end) {
@@ -85,6 +87,15 @@ void Histogram::move(int key) {
     if(key == Qt::Key_0) {
         customPlot->rescaleAxes();
     }
+    if(key == Qt::Key_R) {
+        regenerateColors(0);
+    }
+    if(key == Qt::Key_T) {
+        regenerateColors(1);
+    }
+    if(key == Qt::Key_Q) {
+        setIntervals(0, 5);
+    }
     customPlot->replot();
 }
 
@@ -95,13 +106,53 @@ void Histogram::setUIPlot(QCustomPlot *customPlot) {
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
     customPlot->legend->setWrap(10);
+
+    connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &Histogram::selectionChanged);
+
+    customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &Histogram::showMenu);
 }
 
-void Histogram::addPlot(const Plot plotData) {
-    if(allData.interval <= 0) {
-        throw(std::runtime_error("Invalid interval length"));
+void Histogram::selectionChanged() {
+    for(int i = 0; i < customPlot->plottableCount(); i++) {
+        QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
+        QCPPlottableLegendItem* item = customPlot->legend->itemWithPlottable(bar);
+        if(item->selected() || bar->selected()) {
+            item->setSelected(true);
+            bar->setSelection(QCPDataSelection(bar->data()->dataRange()));
+        }
     }
-    allData.PlotVec.push_back(plotData);
+}
+
+void Histogram::showMenu(const QPoint& pos) {
+    QMenu contextMenu("Context menu", customPlot);
+    QAction act1("Show table", customPlot);
+    contextMenu.addAction(&act1);
+
+    QSignalSpy spy(this, &Histogram::dataSignal);
+
+    connect(&act1, &QAction::triggered, this, &Histogram::getData);
+    for(int i = 0; i < customPlot->plottableCount(); i++) {
+        QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
+        if(bar->selected()) {
+            contextMenu.exec(customPlot->mapToGlobal(pos));
+            break;
+        }
+    }
+
+    //testing recieved data from signal
+    if(spy.count()) {
+        MsgNumbersMap args = spy.takeFirst().at(0).value<MsgNumbersMap>();
+        for(auto& src : args) {
+            for(auto& msgnum : src.second) {
+                qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
+            }
+        }
+        qDebug() << "\n";
+    }
+}
+
+void Histogram::calculateIntervals(const Plot plotData) {
     std::vector<Val> data = plotData.vec;
     double max = data[0].val;
     for(Val val : data) {
@@ -134,18 +185,70 @@ void Histogram::addPlot(const Plot plotData) {
     }
 }
 
+void Histogram::addPlot(const Plot plotData) {
+    if(allData.interval <= 0) {
+        throw(std::runtime_error("Invalid interval length"));
+    }
+    allData.PlotVec.push_back(plotData);
+    calculateIntervals(plotData);
+}
+
 void Histogram::setIntervals(const double start, const double interval) {
+    if(interval <= 0) {
+        throw(std::runtime_error("Invalid interval length"));
+    }
     allData.start = start;
-    allData.interval = interval;
+    allData.interval = interval; 
+    if(!allData.PlotVec.empty()) {
+        intervals.clear();
+        for(auto& plotData : allData.PlotVec) {
+            calculateIntervals(plotData);
+        }
+        if(isDrawn) {
+            drawHistogram();
+        }
+    }
+}
+
+void Histogram::regenerateColors(int type) {
+    for(int i = 0; i < customPlot->plottableCount(); i++) {
+        QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
+        QColor color;
+        if(type == 0) {
+            unsigned char R = qrand() % 128 + 128, G = qrand() % 50 + 128, B = qrand() % R;
+            color.setRgb(R, G, B, 170);
+        }
+        else if(type == 1) {
+            int H = (qrand() % 120 + 300) % 360, S = qrand() % 56 + 200, L = 140;
+            color.setHsl(H, S, L, 170);
+        }
+
+        bar->setBrush(QBrush(color));
+        color.setAlpha(255);
+        bar->setPen(QPen(color));
+//        QCPSelectionDecorator* dec;
+//        dec->setPen()
+//        bar->setSelectionDecorator(dec);
+    }
 }
 
 void Histogram::drawHistogram() {
+    isDrawn = true;
+    customPlot->clearPlottables();
+    customPlot->clearItems();
     std::vector<QCPBars*> bars(intervals.size());
     std::vector<int> ticks(intervals.size());
     std::vector<int> values(intervals.size());
     for(unsigned long long i = 0; i < intervals.size(); i++) {
         double tick = 0;
         bars[i] = new QCPBars(customPlot->xAxis, customPlot->yAxis);
+
+        /*R from 128 to 255
+        G from 0 to 128
+        B from 0 to R*/
+        unsigned char R = qrand() % 128 + 128, G = qrand() % 50 + 128, B = qrand() % R;
+        bars[i]->setBrush(QBrush(QColor(R, G, B, 170)));
+
         bars[i]->setWidth(intervals[i].length());
         tick = (intervals[i].start + intervals[i].end) / 2;
         bars[i]->setData({tick}, {intervals[i].msgCount() + 0.});

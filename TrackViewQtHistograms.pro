@@ -12,12 +12,14 @@ SOURCES += \
     Histogram.cpp \
     main.cpp \
     mainwindow.cpp \
-    qcustomplot/qcustomplot.cpp
+    qcustomplot/qcustomplot.cpp \
+    test_histogram.cpp
 
 HEADERS += \
     Histogram.h \
     mainwindow.h \
-    qcustomplot/qcustomplot.h
+    qcustomplot/qcustomplot.h \
+    test_histogram.h
 
 FORMS += \
     mainwindow.ui

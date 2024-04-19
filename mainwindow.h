@@ -23,7 +23,5 @@ private:
     Histogram H;
 private slots:
     void keyPressEvent(QKeyEvent* event) override;
-    void selectionChanged();
-    void showMenu(const QPoint& pos);
 };
 #endif // MAINWINDOW_H
