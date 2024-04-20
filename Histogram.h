@@ -7,8 +7,6 @@
 #include <map>
 #include <set>
 #include "qcustomplot/qcustomplot.h"
-#include <MyQCP.h>
-#include "test_histogram.h"
 
 using MsgNumbersMap = std::map<int, std::set<int>>; // <sourcenum, set with msgnums>
 Q_DECLARE_METATYPE(MsgNumbersMap);
@@ -52,10 +50,7 @@ class Interval {
 class Histogram : public QObject {
     Q_OBJECT
 public:
-        friend class Test_Histogram;
         Histogram(QCustomPlot* customPlot);
-        Histogram() = default;
-        void setUIPlot(QCustomPlot* customPlot);
 
         void setIntervals(const double start, const double interval);
         void addPlot(const Plot);

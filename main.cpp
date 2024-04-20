@@ -7,7 +7,11 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    QTest::qExec(new Test_Histogram, argc, argv);
+
+    Test_Histogram* testH = new Test_Histogram();
+    QTest::qExec(testH, argc, argv);
+    delete testH;
+
     MainWindow w;
     w.show();
     return a.exec();

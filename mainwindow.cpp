@@ -1,15 +1,12 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <QSignalSpy>
-#include <QTest>
-#include <QKeyEvent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    H.setUIPlot(ui->customPlot);
+    H = new Histogram(ui->customPlot);
 
     std::vector<Val> data(0);
     std::vector<Interval> intervals(0);
@@ -21,8 +18,8 @@ MainWindow::MainWindow(QWidget *parent)
         data.push_back(v);
     }
 
-    H.setIntervals(start, intervalWidth);
-    H.addPlot({data, 1});
+    H->setIntervals(start, intervalWidth);
+    H->addPlot({data, 1});
 
     //test adding existing msgnum
     data.push_back({26, 5});
@@ -30,17 +27,18 @@ MainWindow::MainWindow(QWidget *parent)
         Val v = {double(i * i), i};
         data.push_back(v);
     }
-    H.addPlot({data, 2});
+    H->addPlot({data, 2});
 
-    H.drawHistogram();
+    H->drawHistogram();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
-    H.move(event->key());
+    H->move(event->key());
 }
 
 MainWindow::~MainWindow()
 {
+    delete H;
     delete ui;
 }
 

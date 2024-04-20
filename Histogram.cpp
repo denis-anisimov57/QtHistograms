@@ -13,7 +13,7 @@ Interval::Interval(double start, double end) {
 }
 
 bool Interval::inInterval(double val) const {
-    return ((val > start) && (val <= end));
+    return ((val >= start) && (val < end));
 }
 
 bool Interval::addMsg(Val val, int sourcenum) {
@@ -49,12 +49,20 @@ MsgNumbersMap Interval::getIntervalData() const {
 }
 
 Histogram::Histogram(QCustomPlot* customPlot) {
+    if(!customPlot) {
+        throw std::runtime_error("Initialization Histogram with nullptr");
+    }
     this->customPlot = customPlot;
     allData = AllPlotInfo();
     intervals = std::vector<Interval>();
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
     customPlot->legend->setWrap(10);
+
+    connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &Histogram::selectionChanged);
+
+    customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &Histogram::showMenu);
 }
 
 Histogram::~Histogram() {};
@@ -71,10 +79,10 @@ void Histogram::move(int key) {
         x->moveRange(moveSpeed * x->range().size());
     }
     if(key == Qt::Key_Up || key == Qt::Key_W) {
-        y->moveRange(moveSpeed * y->range().size());
+        y->moveRange(moveSpeed * y->range().size() * customPlot->width() / customPlot->height());
     }
     if(key == Qt::Key_Down || key == Qt::Key_S) {
-        y->moveRange(-moveSpeed * y->range().size());
+        y->moveRange(-moveSpeed * y->range().size() * customPlot->width() / customPlot->height());
     }
     if(key == Qt::Key_Minus) {
         x->scaleRange(scale);
@@ -97,20 +105,6 @@ void Histogram::move(int key) {
         setIntervals(0, 5);
     }
     customPlot->replot();
-}
-
-void Histogram::setUIPlot(QCustomPlot *customPlot) {
-    this->customPlot = customPlot;
-    allData = AllPlotInfo();
-    intervals = std::vector<Interval>();
-    customPlot->legend->setVisible(true);
-    customPlot->legend->setSelectableParts(QCPLegend::spItems);
-    customPlot->legend->setWrap(10);
-
-    connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &Histogram::selectionChanged);
-
-    customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &Histogram::showMenu);
 }
 
 void Histogram::selectionChanged() {
@@ -143,6 +137,9 @@ void Histogram::showMenu(const QPoint& pos) {
     //testing recieved data from signal
     if(spy.count()) {
         MsgNumbersMap args = spy.takeFirst().at(0).value<MsgNumbersMap>();
+        if(args.empty()) {
+            qDebug() << "No data selected";
+        }
         for(auto& src : args) {
             for(auto& msgnum : src.second) {
                 qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
@@ -161,8 +158,7 @@ void Histogram::calculateIntervals(const Plot plotData) {
         }
     }
     if(intervals.empty() || max > intervals[intervals.size() - 1].end) {
-        double intCount = (max - allData.start) / allData.interval;
-        if(intCount - int(intCount) != 0) intCount++;
+        int intCount = (max - allData.start) / allData.interval + 1;
         this->intervals.resize(intCount);
     }
 
@@ -225,9 +221,10 @@ void Histogram::regenerateColors(int type) {
 
         bar->setBrush(QBrush(color));
         color.setAlpha(255);
-        bar->setPen(QPen(color));
+        bar->setPen(QPen(QBrush(color), 1.5));
 //        QCPSelectionDecorator* dec;
-//        dec->setPen()
+//        dec->setPen(...)
+//        dec->setBrush(...)
 //        bar->setSelectionDecorator(dec);
     }
 }
