@@ -8,7 +8,7 @@ class Test_Histogram: public QObject {
     public:
         Test_Histogram(QObject* parent = 0);
     private:
-        Histogram* H = nullptr;
+        hst::Histogram* H = nullptr;
         QCustomPlot* qcp = nullptr;
     private slots:
         void initTestCase();

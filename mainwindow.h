@@ -20,7 +20,8 @@ public:
 
 private:
     Ui::MainWindow *ui;
-    Histogram* H = nullptr;
+    hst::Histogram* H = nullptr;
+    QLabel* label = nullptr;
 private slots:
     void keyPressEvent(QKeyEvent* event) override;
 };

@@ -9,13 +9,13 @@ void Test_Histogram::initTestCase() {
     qDebug() << "Initializing values...";
 
     qcp = new QCustomPlot();
-    H = new Histogram(qcp);
+    H = new hst::Histogram(qcp);
 
     qDebug() << "Done!";
 }
 
 void Test_Histogram::setIntervals() {
-    std::vector<Val> vec = {{1, 100}, {2, 200}, {3, 300}};
+    std::vector<hst::Message> vec = {{1, 100}, {2, 200}, {3, 300}};
 
     QVERIFY_EXCEPTION_THROWN(H->addPlot({vec, 1}), std::runtime_error);
     QVERIFY_EXCEPTION_THROWN(H->setIntervals(0, -10), std::runtime_error);
@@ -30,13 +30,13 @@ void Test_Histogram::setIntervals() {
 }
 
 void Test_Histogram::addPlot() {
-    std::vector<Val> valVec =
+    std::vector<hst::Message> valVec =
     {{101, 1}, {243, 2}, {5, 3}, {67.3, 4}, {34, 5},
      {123, 6}, {-45, 7}, {-10, 8}, {10.8, 9}, {531, 10}};
-    Plot p = {valVec, 23};
+    hst::Plot p = {valVec, 23};
     H->addPlot(p);
     H->drawHistogram();
-    QSignalSpy spy(H, &Histogram::dataSignal);
+    QSignalSpy spy(H, &hst::Histogram::dataSignal);
     for(int i = 0; i < qcp->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(qcp->plottable(i));
         bar->setSelection(QCPDataSelection(bar->data()->dataRange()));

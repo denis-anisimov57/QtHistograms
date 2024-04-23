@@ -2,7 +2,7 @@
 #include <QSignalSpy>
 #include <QMenu>
 
-Interval::Interval(double start, double end) {
+hst::Interval::Interval(double start, double end) {
     if(start > end) {
         double tmp = end;
         end = start;
@@ -12,31 +12,31 @@ Interval::Interval(double start, double end) {
     this->end = end;
 }
 
-bool Interval::inInterval(double val) const {
+bool hst::Interval::inInterval(double val) const {
     return ((val >= start) && (val < end));
 }
 
-bool Interval::addMsg(Val val, int sourcenum) {
-    if(inInterval(val.val)) {
+bool hst::Interval::addMsg(Message msg, int sourcenum) {
+    if(inInterval(msg.value)) {
         if(!msgnumbers.count(sourcenum)) {
             msgnumbers[sourcenum] = std::set<int>();
         }
-        if(msgnumbers[sourcenum].count(val.msgnum)) {
-            qDebug() << "Interval[" << start << ", " << end << "]: Trying to add msgnum = " << val.msgnum << " which already exists\n";
+        if(msgnumbers[sourcenum].count(msg.msgnum)) {
+            qDebug() << "Interval[" << start << ", " << end << "]: Trying to add msgnum = " << msg.msgnum << " which already exists\n";
         }
         else {
-            msgnumbers[sourcenum].insert(val.msgnum);
+            msgnumbers[sourcenum].insert(msg.msgnum);
         }
         return true;
     }
     return false;
 }
 
-double Interval::length() const {
+double hst::Interval::length() const {
     return end - start;
 }
 
-unsigned long long Interval::msgCount() const {
+unsigned long long hst::Interval::msgCount() const {
     unsigned long long count = 0;
     for(auto it = msgnumbers.begin(); it != msgnumbers.end(); it++) {
         count += it->second.size();
@@ -44,62 +44,64 @@ unsigned long long Interval::msgCount() const {
     return count;
 }
 
-MsgNumbersMap Interval::getIntervalData() const {
+MsgNumbersMap hst::Interval::getIntervalData() const {
     return msgnumbers;
 }
 
-Histogram::Histogram(QCustomPlot* customPlot) {
+hst::Histogram::Histogram(QCustomPlot* customPlot, QStatusBar* statusbar) {
     if(!customPlot) {
         throw std::runtime_error("Initialization Histogram with nullptr");
+    }
+    statusLabel = new QLabel();
+    if(statusbar) {
+        statusbar->insertWidget(0, statusLabel);
     }
     this->customPlot = customPlot;
     allData = AllPlotInfo();
     intervals = std::vector<Interval>();
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
-    customPlot->legend->setWrap(10);
+    customPlot->legend->setWrap(hst::legendRowCount);
 
-    connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &Histogram::selectionChanged);
+    connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &hst::Histogram::selectionChanged);
 
     customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
-    connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &Histogram::showMenu);
+    connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &hst::Histogram::showMenu);
 }
 
-Histogram::~Histogram() {};
+hst::Histogram::~Histogram() {
+    delete statusLabel;
+};
 
-void Histogram::move(int key) {
+void hst::Histogram::move(int key) {
     QCPAxis* x = customPlot->xAxis;
     QCPAxis* y = customPlot->yAxis;
-    double moveSpeed = 0.01;
-    double scale = 1.01;
+
     if(key == Qt::Key_Left || key == Qt::Key_A) {
-        x->moveRange(-moveSpeed * x->range().size());
+        x->moveRange(-hst::moveDelta * x->range().size());
     }
     if(key == Qt::Key_Right || key == Qt::Key_D) {
-        x->moveRange(moveSpeed * x->range().size());
+        x->moveRange(hst::moveDelta * x->range().size());
     }
     if(key == Qt::Key_Up || key == Qt::Key_W) {
-        y->moveRange(moveSpeed * y->range().size() * customPlot->width() / customPlot->height());
+        y->moveRange(hst::moveDelta * y->range().size() * customPlot->width() / customPlot->height());
     }
     if(key == Qt::Key_Down || key == Qt::Key_S) {
-        y->moveRange(-moveSpeed * y->range().size() * customPlot->width() / customPlot->height());
+        y->moveRange(-hst::moveDelta * y->range().size() * customPlot->width() / customPlot->height());
     }
     if(key == Qt::Key_Minus) {
-        x->scaleRange(scale);
-        y->scaleRange(scale);
+        x->scaleRange(hst::scaleCoeff);
+        y->scaleRange(hst::scaleCoeff);
     }
     if(key == Qt::Key_Plus) {
-        x->scaleRange(1 / scale);
-        y->scaleRange(1 / scale);
+        x->scaleRange(1 / hst::scaleCoeff);
+        y->scaleRange(1 / hst::scaleCoeff);
     }
     if(key == Qt::Key_0) {
-        customPlot->rescaleAxes();
+        resetScale();
     }
     if(key == Qt::Key_R) {
-        regenerateColors(0);
-    }
-    if(key == Qt::Key_T) {
-        regenerateColors(1);
+        regenerateColors();
     }
     if(key == Qt::Key_Q) {
         setIntervals(0, 5);
@@ -107,32 +109,69 @@ void Histogram::move(int key) {
     customPlot->replot();
 }
 
-void Histogram::selectionChanged() {
+void hst::Histogram::selectionChanged() {
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
         QCPPlottableLegendItem* item = customPlot->legend->itemWithPlottable(bar);
         if(item->selected() || bar->selected()) {
             item->setSelected(true);
             bar->setSelection(QCPDataSelection(bar->data()->dataRange()));
+            if(customPlot->selectedPlottables().size() == 1) {
+                selectedBars.clear();
+            }
+            if(!selectedBars.count(i)) {
+                selectedBars.push_back(i);
+            }
         }
+    }
+    if(customPlot->selectedPlottables().empty()) {
+        selectedBars.clear();
+    }
+    else {
+        QCPBars* lastSelectedBar = dynamic_cast<QCPBars*>(customPlot->plottable(selectedBars.last()));
+        double width = lastSelectedBar->width();
+        double tick = lastSelectedBar->data()->at(0)->mainKey();
+        double start = tick - width / 2, end = tick + width / 2;
+        QString height = QString::number(lastSelectedBar->data()->at(0)->mainValue(), 'f', hst::statusNumberAccuracy);
+        QString status = "Height: ";
+        status += height;
+        status += "; Interval: [";
+        status += QString::number(start, 'f', hst::statusNumberAccuracy);
+        status += ", ";
+        status += QString::number(end, 'f', hst::statusNumberAccuracy);
+        status += "]; Width: ";
+        status += QString::number(width, 'f' , hst::statusNumberAccuracy);
+        statusLabel->setText(status);
     }
 }
 
-void Histogram::showMenu(const QPoint& pos) {
+void hst::Histogram::resetScale() {
+    customPlot->rescaleAxes();
+    customPlot->xAxis->scaleRange(hst::standartScale);
+    customPlot->yAxis->scaleRange(hst::standartScale);
+    customPlot->replot();
+}
+
+void hst::Histogram::showMenu(const QPoint& pos) {
     QMenu contextMenu("Context menu", customPlot);
     QAction act1("Show table", customPlot);
+    act1.setEnabled(false);
+    QAction act2("Reset scale", customPlot);
     contextMenu.addAction(&act1);
+    contextMenu.addAction(&act2);
 
-    QSignalSpy spy(this, &Histogram::dataSignal);
+    QSignalSpy spy(this, &hst::Histogram::dataSignal);
 
-    connect(&act1, &QAction::triggered, this, &Histogram::getData);
+    connect(&act1, &QAction::triggered, this, &hst::Histogram::getData);
+    connect(&act2, &QAction::triggered, this, &hst::Histogram::resetScale);
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
         if(bar->selected()) {
-            contextMenu.exec(customPlot->mapToGlobal(pos));
+            act1.setEnabled(true);
             break;
         }
     }
+    contextMenu.exec(customPlot->mapToGlobal(pos));
 
     //testing recieved data from signal
     if(spy.count()) {
@@ -149,12 +188,12 @@ void Histogram::showMenu(const QPoint& pos) {
     }
 }
 
-void Histogram::calculateIntervals(const Plot plotData) {
-    std::vector<Val> data = plotData.vec;
-    double max = data[0].val;
-    for(Val val : data) {
-        if(val.val > max) {
-            max = val.val;
+void hst::Histogram::calculateIntervals(const Plot plotData) {
+    std::vector<Message> data = plotData.vec;
+    double max = data[0].value;
+    for(Message msg : data) {
+        if(msg.value > max) {
+            max = msg.value;
         }
     }
     if(intervals.empty() || max > intervals[intervals.size() - 1].end) {
@@ -181,7 +220,7 @@ void Histogram::calculateIntervals(const Plot plotData) {
     }
 }
 
-void Histogram::addPlot(const Plot plotData) {
+void hst::Histogram::addPlot(const Plot plotData) {
     if(allData.interval <= 0) {
         throw(std::runtime_error("Invalid interval length"));
     }
@@ -189,12 +228,12 @@ void Histogram::addPlot(const Plot plotData) {
     calculateIntervals(plotData);
 }
 
-void Histogram::setIntervals(const double start, const double interval) {
+void hst::Histogram::setIntervals(const double start, const double interval) {
     if(interval <= 0) {
         throw(std::runtime_error("Invalid interval length"));
     }
     allData.start = start;
-    allData.interval = interval; 
+    allData.interval = interval;
     if(!allData.PlotVec.empty()) {
         intervals.clear();
         for(auto& plotData : allData.PlotVec) {
@@ -206,22 +245,17 @@ void Histogram::setIntervals(const double start, const double interval) {
     }
 }
 
-void Histogram::regenerateColors(int type) {
+void hst::Histogram::regenerateColors() {
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
         QColor color;
-        if(type == 0) {
-            unsigned char R = qrand() % 128 + 128, G = qrand() % 50 + 128, B = qrand() % R;
-            color.setRgb(R, G, B, 170);
-        }
-        else if(type == 1) {
-            int H = (qrand() % 120 + 300) % 360, S = qrand() % 56 + 200, L = 140;
-            color.setHsl(H, S, L, 170);
-        }
+
+        unsigned char R = qrand() % hst::rangeR + hst::startR, G = qrand() % hst::rangeG + hst::startG, B = qrand() % R;
+        color.setRgb(R, G, B, hst::barAlpha);
 
         bar->setBrush(QBrush(color));
-        color.setAlpha(255);
-        bar->setPen(QPen(QBrush(color), 1.5));
+        color.setAlpha(hst::penAlpha);
+        bar->setPen(QPen(QBrush(color), hst::penWidth));
 //        QCPSelectionDecorator* dec;
 //        dec->setPen(...)
 //        dec->setBrush(...)
@@ -229,7 +263,7 @@ void Histogram::regenerateColors(int type) {
     }
 }
 
-void Histogram::drawHistogram() {
+void hst::Histogram::drawHistogram() {
     isDrawn = true;
     customPlot->clearPlottables();
     customPlot->clearItems();
@@ -241,14 +275,19 @@ void Histogram::drawHistogram() {
         bars[i] = new QCPBars(customPlot->xAxis, customPlot->yAxis);
 
         /*R from 128 to 255
-        G from 0 to 128
+        G from 128 to 178
         B from 0 to R*/
-        unsigned char R = qrand() % 128 + 128, G = qrand() % 50 + 128, B = qrand() % R;
-        bars[i]->setBrush(QBrush(QColor(R, G, B, 170)));
+        QColor color;
+        unsigned char R = qrand() % hst::rangeR + hst::startR, G = qrand() % hst::rangeG + hst::startG, B = qrand() % R;
+        color.setRgb(R, G, B, hst::barAlpha);
+
+        bars[i]->setBrush(QBrush(color));
+        color.setAlpha(hst::penAlpha);
+        bars[i]->setPen(QPen(QBrush(color), hst::penWidth));
 
         bars[i]->setWidth(intervals[i].length());
         tick = (intervals[i].start + intervals[i].end) / 2;
-        bars[i]->setData({tick}, {intervals[i].msgCount() + 0.});
+        bars[i]->setData({tick}, {double(intervals[i].msgCount())});
         bars[i]->setName(QString::number(tick));
     }
     customPlot->xAxis->setLabel("x");
@@ -256,7 +295,7 @@ void Histogram::drawHistogram() {
 
     QSharedPointer<QCPAxisTickerFixed> fixedYTicker(new QCPAxisTickerFixed);
     customPlot->yAxis->setTicker(fixedYTicker);
-    fixedYTicker->setTickStep(1.0);
+    fixedYTicker->setTickStep(hst::yTickStep);
     fixedYTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
 
     QSharedPointer<QCPAxisTickerFixed> fixedXTicker(new QCPAxisTickerFixed);
@@ -266,6 +305,8 @@ void Histogram::drawHistogram() {
     fixedXTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
 
     customPlot->rescaleAxes();
+    customPlot->xAxis->scaleRange(hst::standartScale);
+    customPlot->yAxis->scaleRange(hst::standartScale);
 
     customPlot->setInteractions(QCP::iRangeDrag |
                                 QCP::iRangeZoom |
@@ -274,7 +315,7 @@ void Histogram::drawHistogram() {
                                 QCP::iMultiSelect);
 }
 
-void Histogram::getData() {
+void hst::Histogram::getData() {
     MsgNumbersMap plotData;
     for(int i = 0; i < customPlot->plottableCount(); i++) {
         QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));

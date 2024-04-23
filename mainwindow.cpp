@@ -6,15 +6,15 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    H = new Histogram(ui->customPlot);
+    H = new hst::Histogram(ui->customPlot, ui->statusbar);
 
-    std::vector<Val> data(0);
-    std::vector<Interval> intervals(0);
+    std::vector<hst::Message> data(0);
+    std::vector<hst::Interval> intervals(0);
     double start = 1;
     double intervalWidth = 10;
 
     for(int i = 0; i < 10; i++) {
-        Val v = {double(i * i), i};
+        hst::Message v = {double(i * i), i};
         data.push_back(v);
     }
 
@@ -24,7 +24,7 @@ MainWindow::MainWindow(QWidget *parent)
     //test adding existing msgnum
     data.push_back({26, 5});
     for(int i = 10; i < 16; i++) {
-        Val v = {double(i * i), i};
+        hst::Message v = {double(i * i), i};
         data.push_back(v);
     }
     H->addPlot({data, 2});
