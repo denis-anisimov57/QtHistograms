@@ -32,6 +32,14 @@ bool hst::Interval::addMsg(Message msg, int sourcenum) {
     return false;
 }
 
+double hst::Interval::getStart() const {
+    return start;
+}
+
+double hst::Interval::getEnd() const {
+    return end;
+}
+
 double hst::Interval::length() const {
     return end - start;
 }
@@ -57,14 +65,13 @@ hst::Histogram::Histogram(QCustomPlot* customPlot, QStatusBar* statusbar) {
         statusbar->insertWidget(0, statusLabel);
     }
     this->customPlot = customPlot;
-    allData = AllPlotInfo();
-    intervals = std::vector<Interval>();
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
     customPlot->legend->setWrap(hst::legendRowCount);
+    allData = AllPlotInfo();
+    intervals = std::vector<Interval>();
 
     connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &hst::Histogram::selectionChanged);
-
     customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &hst::Histogram::showMenu);
 }
@@ -73,7 +80,7 @@ hst::Histogram::~Histogram() {
     delete statusLabel;
 };
 
-void hst::Histogram::move(int key) {
+void hst::Histogram::keyPressed(int key) {
     QCPAxis* x = customPlot->xAxis;
     QCPAxis* y = customPlot->yAxis;
 
@@ -102,9 +109,6 @@ void hst::Histogram::move(int key) {
     }
     if(key == Qt::Key_R) {
         regenerateColors();
-    }
-    if(key == Qt::Key_Q) {
-        setIntervals(0, 5);
     }
     customPlot->replot();
 }
@@ -189,14 +193,14 @@ void hst::Histogram::showMenu(const QPoint& pos) {
 }
 
 void hst::Histogram::calculateIntervals(const Plot plotData) {
-    std::vector<Message> data = plotData.vec;
+    std::vector<Message> data = plotData.messages;
     double max = data[0].value;
     for(Message msg : data) {
         if(msg.value > max) {
             max = msg.value;
         }
     }
-    if(intervals.empty() || max > intervals[intervals.size() - 1].end) {
+    if(intervals.empty() || max > intervals[intervals.size() - 1].getEnd()) {
         int intCount = (max - allData.start) / allData.interval + 1;
         this->intervals.resize(intCount);
     }
@@ -212,7 +216,7 @@ void hst::Histogram::calculateIntervals(const Plot plotData) {
     //other intervals
     for(unsigned long long i = 1; i < intervals.size(); i++) {
         if(!intervals[i].length()) {
-            intervals[i] = Interval(intervals[i - 1].end, intervals[i - 1].end + allData.interval);
+            intervals[i] = Interval(intervals[i - 1].getEnd(), intervals[i - 1].getEnd() + allData.interval);
         }
         for(unsigned long long j = 0; j < data.size(); j++) {
             intervals[i].addMsg(data[j], plotData.sourcenum);
@@ -224,8 +228,12 @@ void hst::Histogram::addPlot(const Plot plotData) {
     if(allData.interval <= 0) {
         throw(std::runtime_error("Invalid interval length"));
     }
-    allData.PlotVec.push_back(plotData);
+    allData.plots.push_back(plotData);
     calculateIntervals(plotData);
+    if(isDrawn) {
+        drawHistogram();
+        customPlot->replot();
+    }
 }
 
 void hst::Histogram::setIntervals(const double start, const double interval) {
@@ -234,9 +242,9 @@ void hst::Histogram::setIntervals(const double start, const double interval) {
     }
     allData.start = start;
     allData.interval = interval;
-    if(!allData.PlotVec.empty()) {
+    if(!allData.plots.empty()) {
         intervals.clear();
-        for(auto& plotData : allData.PlotVec) {
+        for(auto& plotData : allData.plots) {
             calculateIntervals(plotData);
         }
         if(isDrawn) {
@@ -264,7 +272,6 @@ void hst::Histogram::regenerateColors() {
 }
 
 void hst::Histogram::drawHistogram() {
-    isDrawn = true;
     customPlot->clearPlottables();
     customPlot->clearItems();
     std::vector<QCPBars*> bars(intervals.size());
@@ -286,33 +293,38 @@ void hst::Histogram::drawHistogram() {
         bars[i]->setPen(QPen(QBrush(color), hst::penWidth));
 
         bars[i]->setWidth(intervals[i].length());
-        tick = (intervals[i].start + intervals[i].end) / 2;
+        tick = (intervals[i].getStart() + intervals[i].getEnd()) / 2;
         bars[i]->setData({tick}, {double(intervals[i].msgCount())});
         bars[i]->setName(QString::number(tick));
     }
-    customPlot->xAxis->setLabel("x");
-    customPlot->yAxis->setLabel("y");
-
-    QSharedPointer<QCPAxisTickerFixed> fixedYTicker(new QCPAxisTickerFixed);
-    customPlot->yAxis->setTicker(fixedYTicker);
-    fixedYTicker->setTickStep(hst::yTickStep);
-    fixedYTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
 
     QSharedPointer<QCPAxisTickerFixed> fixedXTicker(new QCPAxisTickerFixed);
     customPlot->xAxis->setTicker(fixedXTicker);
     fixedXTicker->setTickStep(intervals[0].length());
-    fixedXTicker->setTickOrigin(intervals[0].start);
+    fixedXTicker->setTickOrigin(intervals[0].getStart());
     fixedXTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
 
     customPlot->rescaleAxes();
     customPlot->xAxis->scaleRange(hst::standartScale);
     customPlot->yAxis->scaleRange(hst::standartScale);
 
-    customPlot->setInteractions(QCP::iRangeDrag |
-                                QCP::iRangeZoom |
-                                QCP::iSelectPlottables |
-                                QCP::iSelectLegend |
-                                QCP::iMultiSelect);
+    if(!isDrawn) {
+        isDrawn = true;
+
+        customPlot->xAxis->setLabel("x");
+        customPlot->yAxis->setLabel("y");
+
+        QSharedPointer<QCPAxisTickerFixed> fixedYTicker(new QCPAxisTickerFixed);
+        customPlot->yAxis->setTicker(fixedYTicker);
+        fixedYTicker->setTickStep(hst::yTickStep);
+        fixedYTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
+
+        customPlot->setInteractions(QCP::iRangeDrag |
+                                    QCP::iRangeZoom |
+                                    QCP::iSelectPlottables |
+                                    QCP::iSelectLegend |
+                                    QCP::iMultiSelect);
+    }
 }
 
 void hst::Histogram::getData() {
