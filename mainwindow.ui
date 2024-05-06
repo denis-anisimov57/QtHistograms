@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QHBoxLayout" name="horizontalLayout">
     <item>
-     <widget class="QCustomPlot" name="customPlot" native="true"/>
+     <widget class="hst::Histogram" name="histogram" native="true"/>
     </item>
    </layout>
   </widget>
@@ -34,9 +34,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QCustomPlot</class>
+   <class>hst::Histogram</class>
    <extends>QWidget</extends>
-   <header location="global">../../qcustomplot/qcustomplot.h</header>
+   <header location="global">Histogram.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

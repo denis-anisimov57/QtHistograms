@@ -6,7 +6,7 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    H = new hst::Histogram(ui->customPlot, ui->statusbar);
+    H = ui->histogram;
 
     std::vector<hst::Message> data(0);
     double start = 1;
@@ -32,16 +32,8 @@ MainWindow::MainWindow(QWidget *parent)
     H->drawHistogram();
 }
 
-void MainWindow::keyPressEvent(QKeyEvent *event) {
-    H->keyPressed(event->key());
-    if(event->key() == Qt::Key_Q) {
-        H->setIntervals(0, 6.5);
-    }
-}
-
 MainWindow::~MainWindow()
 {
-    delete H;
     delete ui;
 }
 

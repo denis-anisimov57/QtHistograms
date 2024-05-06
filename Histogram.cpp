@@ -56,15 +56,18 @@ MsgNumbersMap hst::Interval::getIntervalData() const {
     return msgnumbers;
 }
 
-hst::Histogram::Histogram(QCustomPlot* customPlot, QStatusBar* statusbar) {
-    if(!customPlot) {
-        throw std::runtime_error("Initialization Histogram with nullptr");
-    }
+hst::Histogram::Histogram(QWidget* parent): QWidget(parent) {
+    customPlot = new QCustomPlot(this);
+
     statusLabel = new QLabel();
-    if(statusbar) {
-        statusbar->insertWidget(0, statusLabel);
-    }
-    this->customPlot = customPlot;
+    statusbar = new QStatusBar(this);
+    statusbar->insertWidget(0, statusLabel);
+
+    layout = new QVBoxLayout();
+    layout->addWidget(customPlot, 99);
+    layout->addWidget(statusbar, 1);
+    this->setLayout(layout);
+
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
     customPlot->legend->setWrap(hst::legendRowCount);
@@ -76,9 +79,36 @@ hst::Histogram::Histogram(QCustomPlot* customPlot, QStatusBar* statusbar) {
     connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &hst::Histogram::showMenu);
 }
 
+//hst::Histogram::Histogram(QCustomPlot* customPlot, QStatusBar* statusbar) {
+//    if(!customPlot) {
+//        throw std::runtime_error("Initialization Histogram with nullptr");
+//    }
+//    statusLabel = new QLabel();
+//    if(statusbar) {
+//        statusbar->insertWidget(0, statusLabel);
+//    }
+//    this->customPlot = customPlot;
+//    customPlot->legend->setVisible(true);
+//    customPlot->legend->setSelectableParts(QCPLegend::spItems);
+//    customPlot->legend->setWrap(hst::legendRowCount);
+//    allData = AllPlotInfo();
+//    intervals = std::vector<Interval>();
+
+//    connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &hst::Histogram::selectionChanged);
+//    customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
+//    connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &hst::Histogram::showMenu);
+//}
+
 hst::Histogram::~Histogram() {
     delete statusLabel;
+    delete statusbar;
+    delete layout;
+    delete customPlot;
 };
+
+void hst::Histogram::keyPressEvent(QKeyEvent* event) {
+    this->keyPressed(event->key());
+}
 
 void hst::Histogram::keyPressed(int key) {
     QCPAxis* x = customPlot->xAxis;

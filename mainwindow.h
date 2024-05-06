@@ -21,8 +21,5 @@ public:
 private:
     Ui::MainWindow *ui;
     hst::Histogram* H = nullptr;
-    QLabel* label = nullptr;
-private slots:
-    void keyPressEvent(QKeyEvent* event) override;
 };
 #endif // MAINWINDOW_H

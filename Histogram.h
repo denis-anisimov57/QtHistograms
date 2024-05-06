@@ -113,9 +113,10 @@ class Interval {
 };
 
 //! \brief Класс, описывающий график гистограммы
-class Histogram : public QObject {
+class Histogram : public QWidget {
     Q_OBJECT
 public:
+        explicit Histogram(QWidget* parent = nullptr);
         //! Конструктор с параметрами
         //! \param customPlot Указатель на виджет, на котором будет отображаться график
         //! \param statusbar Указатель на полоску состояния, на которой будет отображаться динамическая информация. Необязательный параметр.
@@ -160,7 +161,7 @@ public:
         void regenerateColors();
 
         //! Деструктор
-        ~Histogram();
+        virtual ~Histogram() Q_DECL_OVERRIDE;
     private:
         void calculateIntervals(const Plot);
 
@@ -170,6 +171,8 @@ public:
         std::vector<Interval> intervals;
         QCustomPlot* customPlot = nullptr;
         QLabel* statusLabel = nullptr;
+        QStatusBar* statusbar = nullptr;
+        QVBoxLayout* layout;
     public slots:
         //! Слот для сброса масштаба
         void resetScale();
@@ -195,7 +198,8 @@ public:
         //! \note Вероятно временно: сигнал с данными ловится с помощью QSignalSpy и
         //! полученная информация выводится в qDebug
         void showMenu(const QPoint& pos);
-
+    private slots:
+        void keyPressEvent(QKeyEvent* event) override;
     signals:
         //! Сигнал, отправляющий данные о источниках и номерах сообщений
         //! \param msgnumbers Хранит источники сообщений и соответствующие им номера сообщений

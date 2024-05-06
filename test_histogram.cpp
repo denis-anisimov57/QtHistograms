@@ -9,7 +9,7 @@ void Test_Histogram::initTestCase() {
     qDebug() << "Initializing values...";
 
     qcp = new QCustomPlot();
-    H = new hst::Histogram(qcp);
+//    H = new hst::Histogram(qcp);
 
     qDebug() << "Done!";
 }
