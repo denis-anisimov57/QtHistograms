@@ -26,21 +26,22 @@ Q_DECLARE_METATYPE(MsgNumbersMap);
 //! \brief Пространство имён для классов и структур, необходимых для построения гистограмм.
 namespace hst {
 
-const int legendRowCount = 10;      //!< Максимальное количество элементов в легенде в одном столбце
-const double moveDelta = 0.01;      //!< Отображает, насколько подвинется график при передвижении, с помощью стрелочек
-const double scaleCoeff = 1.01;     //!< Отображает, во сколько раз изменится диапазон осей при уменьшении масштаба
-const double standartScale = 1.05;  //!< Начальный масштаб графика
-const int statusNumberAccuracy = 2; //!< Количество цифр после запятой в числах, отображаемых в полоске состояние(statusbar)
-const double yTickStep = 1.0;       //!< Шаг меток на оси Oy
+const bool showDebugMessages = true;    //!< Когда включена выводит дополнительную информацию в qDebug()
+const int legendRowCount = 10;          //!< Максимальное количество элементов в легенде в одном столбце
+const double moveDelta = 0.01;          //!< Отображает, насколько подвинется график при передвижении, с помощью стрелочек
+const double scaleCoeff = 1.01;         //!< Отображает, во сколько раз изменится диапазон осей при уменьшении масштаба
+const double standartScale = 1.05;      //!< Начальный масштаб графика
+const int statusNumberAccuracy = 2;     //!< Количество цифр после запятой в числах, отображаемых в полоске состояние(statusbar)
+const double yTickStep = 1.0;           //!< Шаг меток на оси Oy
 
-const int rangeR = 128;             //!< Диапазон значений красного цвета
-const int startR = 128;             //!< Минимальное значение красного цвета
-const int rangeG = 50;              //!< Диапазон значение зелёного цвета
-const int startG = 128;             //!< Минимальное значение зелёного цвета
-const int barAlpha = 170;           //!< Значение непрозрачности
+const int rangeR = 128;                 //!< Диапазон значений красного цвета
+const int startR = 128;                 //!< Минимальное значение красного цвета
+const int rangeG = 50;                  //!< Диапазон значение зелёного цвета
+const int startG = 128;                 //!< Минимальное значение зелёного цвета
+const int barAlpha = 170;               //!< Значение непрозрачности
 
-const int penAlpha = 255;           //!< Значение непрозрачности границы
-const double penWidth = 1.5;        //!< Ширина границы
+const int penAlpha = 255;               //!< Значение непрозрачности границы
+const double penWidth = 1.5;            //!< Ширина границы
 
 //! \brief Структура, описывающая одно сообщение
 struct Message {

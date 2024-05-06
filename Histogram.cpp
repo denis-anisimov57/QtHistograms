@@ -21,7 +21,7 @@ bool hst::Interval::addMsg(Message msg, int sourcenum) {
         if(!msgnumbers.count(sourcenum)) {
             msgnumbers[sourcenum] = std::set<int>();
         }
-        if(msgnumbers[sourcenum].count(msg.msgnum)) {
+        if(showDebugMessages && msgnumbers[sourcenum].count(msg.msgnum)) {
             qDebug() << "Interval[" << start << ", " << end << "]: Trying to add msgnum = " << msg.msgnum << " which already exists\n";
         }
         else {
@@ -177,7 +177,7 @@ void hst::Histogram::showMenu(const QPoint& pos) {
     }
     contextMenu.exec(customPlot->mapToGlobal(pos));
 
-    //testing recieved data from signal
+//    testing recieved data from signal
     if(spy.count()) {
         MsgNumbersMap args = spy.takeFirst().at(0).value<MsgNumbersMap>();
         if(args.empty()) {
@@ -209,18 +209,14 @@ void hst::Histogram::calculateIntervals(const Plot plotData) {
     if(!intervals[0].length()) {
         intervals[0] = Interval(allData.start, allData.start + allData.interval);
     }
-    for(unsigned long long j = 0; j < data.size(); j++) {
-        intervals[0].addMsg(data[j], plotData.sourcenum);
-    }
-
     //other intervals
     for(unsigned long long i = 1; i < intervals.size(); i++) {
         if(!intervals[i].length()) {
             intervals[i] = Interval(intervals[i - 1].getEnd(), intervals[i - 1].getEnd() + allData.interval);
         }
-        for(unsigned long long j = 0; j < data.size(); j++) {
-            intervals[i].addMsg(data[j], plotData.sourcenum);
-        }
+    }
+    for(unsigned long long j = 0; j < data.size(); j++) {
+        intervals[int((data[j].value - allData.start) / allData.interval)].addMsg(data[j], plotData.sourcenum);
     }
 }
 
@@ -249,6 +245,7 @@ void hst::Histogram::setIntervals(const double start, const double interval) {
         }
         if(isDrawn) {
             drawHistogram();
+            customPlot->replot();
         }
     }
 }
@@ -264,10 +261,6 @@ void hst::Histogram::regenerateColors() {
         bar->setBrush(QBrush(color));
         color.setAlpha(hst::penAlpha);
         bar->setPen(QPen(QBrush(color), hst::penWidth));
-//        QCPSelectionDecorator* dec;
-//        dec->setPen(...)
-//        dec->setBrush(...)
-//        bar->setSelectionDecorator(dec);
     }
 }
 
