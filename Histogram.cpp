@@ -1,6 +1,4 @@
 #include "Histogram.h"
-#include <QSignalSpy>
-#include <QMenu>
 
 hst::Histogram::Histogram(QWidget* parent): QWidget(parent) {
     customPlot = new QCustomPlot(this);
@@ -256,10 +254,6 @@ void hst::Histogram::drawHistogram() {
     fixedXTicker->setTickOrigin(intervals[0].getStart());
     fixedXTicker->setScaleStrategy(QCPAxisTickerFixed::ssMultiples);
 
-    customPlot->rescaleAxes();
-    customPlot->xAxis->scaleRange(hst::standartScale);
-    customPlot->yAxis->scaleRange(hst::standartScale);
-
     if(!isDrawn) {
         isDrawn = true;
 
@@ -277,6 +271,10 @@ void hst::Histogram::drawHistogram() {
                                     QCP::iSelectLegend |
                                     QCP::iMultiSelect);
     }
+
+    customPlot->rescaleAxes();
+    customPlot->xAxis->scaleRange(hst::standartScale);
+    customPlot->yAxis->scaleRange(hst::standartScale);
 }
 
 void hst::Histogram::getData() {
@@ -294,15 +292,15 @@ void hst::Histogram::getData() {
         }
     }
 //  пример вывода полученных данных
-    if(plotData.empty()) {
-        qDebug() << "No data selected";
-    }
-    for(auto& src : plotData) {
-        for(auto& msgnum : src.second) {
-            qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
-        }
-    }
-    qDebug() << "\n";
+//    if(plotData.empty()) {
+//        qDebug() << "No data selected";
+//    }
+//    for(auto& src : plotData) {
+//        for(auto& msgnum : src.second) {
+//            qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
+//        }
+//    }
+//    qDebug() << "\n";
 
     emit dataSignal(plotData);
 }
