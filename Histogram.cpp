@@ -2,60 +2,6 @@
 #include <QSignalSpy>
 #include <QMenu>
 
-hst::Interval::Interval(double start, double end) {
-    if(start > end) {
-        double tmp = end;
-        end = start;
-        start = tmp;
-    }
-    this->start = start;
-    this->end = end;
-}
-
-bool hst::Interval::inInterval(double val) const {
-    return ((val >= start) && (val < end));
-}
-
-bool hst::Interval::addMsg(Message msg, int sourcenum) {
-    if(inInterval(msg.value)) {
-        if(!msgnumbers.count(sourcenum)) {
-            msgnumbers[sourcenum] = std::set<int>();
-        }
-        if(showDebugMessages && msgnumbers[sourcenum].count(msg.msgnum)) {
-            qDebug() << "Interval[" << start << ", " << end << "]: Trying to add msgnum = " << msg.msgnum << " which already exists\n";
-        }
-        else {
-            msgnumbers[sourcenum].insert(msg.msgnum);
-        }
-        return true;
-    }
-    return false;
-}
-
-double hst::Interval::getStart() const {
-    return start;
-}
-
-double hst::Interval::getEnd() const {
-    return end;
-}
-
-double hst::Interval::length() const {
-    return end - start;
-}
-
-unsigned long long hst::Interval::msgCount() const {
-    unsigned long long count = 0;
-    for(auto it = msgnumbers.begin(); it != msgnumbers.end(); it++) {
-        count += it->second.size();
-    }
-    return count;
-}
-
-MsgNumbersMap hst::Interval::getIntervalData() const {
-    return msgnumbers;
-}
-
 hst::Histogram::Histogram(QWidget* parent): QWidget(parent) {
     customPlot = new QCustomPlot(this);
 
@@ -68,6 +14,28 @@ hst::Histogram::Histogram(QWidget* parent): QWidget(parent) {
     layout->addWidget(statusbar, 1);
     this->setLayout(layout);
 
+    contextMenu = new QMenu("Context menu", this);
+
+    actTable = new QAction("Show table", this);
+    actTable->setEnabled(false);
+    actTable->setShortcut(QKeySequence(Qt::Key_T));
+    connect(actTable, &QAction::triggered, this, &hst::Histogram::getData);
+
+    actScale = new QAction("Reset scale", this);
+    actScale->setShortcut(QKeySequence(Qt::Key_0));
+    connect(actScale, &QAction::triggered, this, &hst::Histogram::resetScale);
+
+    actLegend = new QAction("Hide legend", this);
+    actLegend->setShortcut(QKeySequence(Qt::Key_L));
+    connect(actLegend, &QAction::triggered, this, &hst::Histogram::toggleLegend);
+
+    actColors = new QAction("Regenerate colors", this);
+    actColors->setShortcut(QKeySequence(Qt::Key_R));
+    connect(actColors, &QAction::triggered, this, &hst::Histogram::regenerateColors);
+
+    this->addActions({actTable, actLegend, actColors, actScale});
+    contextMenu->addActions({actTable, actLegend, actColors, actScale});
+
     customPlot->legend->setVisible(true);
     customPlot->legend->setSelectableParts(QCPLegend::spItems);
     customPlot->legend->setWrap(hst::legendRowCount);
@@ -79,38 +47,20 @@ hst::Histogram::Histogram(QWidget* parent): QWidget(parent) {
     connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &hst::Histogram::showMenu);
 }
 
-//hst::Histogram::Histogram(QCustomPlot* customPlot, QStatusBar* statusbar) {
-//    if(!customPlot) {
-//        throw std::runtime_error("Initialization Histogram with nullptr");
-//    }
-//    statusLabel = new QLabel();
-//    if(statusbar) {
-//        statusbar->insertWidget(0, statusLabel);
-//    }
-//    this->customPlot = customPlot;
-//    customPlot->legend->setVisible(true);
-//    customPlot->legend->setSelectableParts(QCPLegend::spItems);
-//    customPlot->legend->setWrap(hst::legendRowCount);
-//    allData = AllPlotInfo();
-//    intervals = std::vector<Interval>();
-
-//    connect(customPlot, &QCustomPlot::selectionChangedByUser, this, &hst::Histogram::selectionChanged);
-//    customPlot->setContextMenuPolicy(Qt::CustomContextMenu);
-//    connect(customPlot, &QCustomPlot::customContextMenuRequested, this, &hst::Histogram::showMenu);
-//}
-
 hst::Histogram::~Histogram() {
     delete statusLabel;
     delete statusbar;
     delete layout;
     delete customPlot;
+    delete contextMenu;
+    delete actTable;
+    delete actScale;
+    delete actLegend;
+    delete actColors;
 };
 
 void hst::Histogram::keyPressEvent(QKeyEvent* event) {
-    this->keyPressed(event->key());
-}
-
-void hst::Histogram::keyPressed(int key) {
+    int key = event->key();
     QCPAxis* x = customPlot->xAxis;
     QCPAxis* y = customPlot->yAxis;
 
@@ -134,12 +84,6 @@ void hst::Histogram::keyPressed(int key) {
         x->scaleRange(1 / hst::scaleCoeff);
         y->scaleRange(1 / hst::scaleCoeff);
     }
-    if(key == Qt::Key_0) {
-        resetScale();
-    }
-    if(key == Qt::Key_R) {
-        regenerateColors();
-    }
     customPlot->replot();
 }
 
@@ -160,8 +104,10 @@ void hst::Histogram::selectionChanged() {
     }
     if(customPlot->selectedPlottables().empty()) {
         selectedBars.clear();
+        actTable->setEnabled(false);
     }
     else {
+        actTable->setEnabled(true);
         QCPBars* lastSelectedBar = dynamic_cast<QCPBars*>(customPlot->plottable(selectedBars.last()));
         double width = lastSelectedBar->width();
         double tick = lastSelectedBar->data()->at(0)->mainKey();
@@ -179,6 +125,18 @@ void hst::Histogram::selectionChanged() {
     }
 }
 
+void hst::Histogram::toggleLegend() {
+    if(customPlot->legend->visible()) {
+        customPlot->legend->setVisible(false);
+        actLegend->setText("Show legend");
+    }
+    else {
+        customPlot->legend->setVisible(true);
+        actLegend->setText("Hide legend");
+    }
+    customPlot->replot();
+}
+
 void hst::Histogram::resetScale() {
     customPlot->rescaleAxes();
     customPlot->xAxis->scaleRange(hst::standartScale);
@@ -187,42 +145,10 @@ void hst::Histogram::resetScale() {
 }
 
 void hst::Histogram::showMenu(const QPoint& pos) {
-    QMenu contextMenu("Context menu", customPlot);
-    QAction act1("Show table", customPlot);
-    act1.setEnabled(false);
-    QAction act2("Reset scale", customPlot);
-    contextMenu.addAction(&act1);
-    contextMenu.addAction(&act2);
-
-    QSignalSpy spy(this, &hst::Histogram::dataSignal);
-
-    connect(&act1, &QAction::triggered, this, &hst::Histogram::getData);
-    connect(&act2, &QAction::triggered, this, &hst::Histogram::resetScale);
-    for(int i = 0; i < customPlot->plottableCount(); i++) {
-        QCPBars* bar = dynamic_cast<QCPBars*>(customPlot->plottable(i));
-        if(bar->selected()) {
-            act1.setEnabled(true);
-            break;
-        }
-    }
-    contextMenu.exec(customPlot->mapToGlobal(pos));
-
-//    testing recieved data from signal
-    if(spy.count()) {
-        MsgNumbersMap args = spy.takeFirst().at(0).value<MsgNumbersMap>();
-        if(args.empty()) {
-            qDebug() << "No data selected";
-        }
-        for(auto& src : args) {
-            for(auto& msgnum : src.second) {
-                qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
-            }
-        }
-        qDebug() << "\n";
-    }
+    contextMenu->exec(customPlot->mapToGlobal(pos));
 }
 
-void hst::Histogram::calculateIntervals(const Plot plotData) {
+void hst::Histogram::calculateIntervals(const Plot& plotData) {
     std::vector<Message> data = plotData.messages;
     double max = data[0].value;
     for(Message msg : data) {
@@ -235,11 +161,11 @@ void hst::Histogram::calculateIntervals(const Plot plotData) {
         this->intervals.resize(intCount);
     }
 
-    //first interval
+    // первый интервал
     if(!intervals[0].length()) {
         intervals[0] = Interval(allData.start, allData.start + allData.interval);
     }
-    //other intervals
+    // остальные интервалы
     for(unsigned long long i = 1; i < intervals.size(); i++) {
         if(!intervals[i].length()) {
             intervals[i] = Interval(intervals[i - 1].getEnd(), intervals[i - 1].getEnd() + allData.interval);
@@ -292,6 +218,7 @@ void hst::Histogram::regenerateColors() {
         color.setAlpha(hst::penAlpha);
         bar->setPen(QPen(QBrush(color), hst::penWidth));
     }
+    customPlot->replot();
 }
 
 void hst::Histogram::drawHistogram() {
@@ -304,9 +231,11 @@ void hst::Histogram::drawHistogram() {
         double tick = 0;
         bars[i] = new QCPBars(customPlot->xAxis, customPlot->yAxis);
 
-        /*R from 128 to 255
-        G from 128 to 178
-        B from 0 to R*/
+        /*
+        R от (startR) до (startR + rangeR)
+        G от (startG) до (startG + rangeG)
+        B от (0) до (R)
+        */
         QColor color;
         unsigned char R = qrand() % hst::rangeR + hst::startR, G = qrand() % hst::rangeG + hst::startG, B = qrand() % R;
         color.setRgb(R, G, B, hst::barAlpha);
@@ -364,5 +293,71 @@ void hst::Histogram::getData() {
             }
         }
     }
+//  пример вывода полученных данных
+    if(plotData.empty()) {
+        qDebug() << "No data selected";
+    }
+    for(auto& src : plotData) {
+        for(auto& msgnum : src.second) {
+            qDebug() << "[source: " << src.first << ", msgnum: " << msgnum << "]";
+        }
+    }
+    qDebug() << "\n";
+
     emit dataSignal(plotData);
 }
+
+hst::Interval::Interval(double start, double end) {
+    if(start > end) {
+        double tmp = end;
+        end = start;
+        start = tmp;
+    }
+    this->start = start;
+    this->end = end;
+}
+
+bool hst::Interval::inInterval(double val) const {
+    return ((val >= start) && (val < end));
+}
+
+bool hst::Interval::addMsg(Message msg, int sourcenum) {
+    if(inInterval(msg.value)) {
+        if(!msgnumbers.count(sourcenum)) {
+            msgnumbers[sourcenum] = std::set<int>();
+        }
+        if(showDebugMessages && msgnumbers[sourcenum].count(msg.msgnum)) {
+            qDebug() << "Interval[" << start << ", " << end << "]: Trying to add msgnum = " << msg.msgnum << " which already exists\n";
+        }
+        else {
+            msgnumbers[sourcenum].insert(msg.msgnum);
+        }
+        return true;
+    }
+    return false;
+}
+
+double hst::Interval::getStart() const {
+    return start;
+}
+
+double hst::Interval::getEnd() const {
+    return end;
+}
+
+double hst::Interval::length() const {
+    return end - start;
+}
+
+unsigned long long hst::Interval::msgCount() const {
+    unsigned long long count = 0;
+    for(auto it = msgnumbers.begin(); it != msgnumbers.end(); it++) {
+        count += it->second.size();
+    }
+    return count;
+}
+
+MsgNumbersMap hst::Interval::getIntervalData() const {
+    return msgnumbers;
+}
+
