@@ -13,13 +13,15 @@ class Test_Histogram: public QObject {
         hst::Histogram* H = nullptr;
         QCustomPlot* qcp = nullptr;
     private slots:
-        void initTestCase();
-        void setIntervals();
-        void addPlot();
-        void selectBars();
-        void dataInIntervals();
-        void changeIntervals();
-        void cleanupTestCase();
+        void initTestCase();    //!< Инициализация данных для тестов
+        void setIntervals();    //!< Тест метода установки интервалов
+        void addPlot();         //!< Тест добавления нового источника
+        void selectBars();      //!< Тест выделения столбцов и элементов легенды
+        void statusbar();       //!< Тест вывода информации в полоску состояния
+        void dataInIntervals(); //!< Тест корректности данных в интервалах
+        void changeIntervals(); //!< Тест смены интервалов с добавленными данными
+        void addOtherPlot();    //!< Тест добавления ещё одного источника
+        void cleanupTestCase(); //!< Очищения данных после тестов
 };
 
 }
