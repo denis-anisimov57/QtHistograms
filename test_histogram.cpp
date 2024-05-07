@@ -2,19 +2,19 @@
 #include <QTest>
 #include <QSignalSpy>
 
-Test_Histogram::Test_Histogram(QObject* parent): QObject(parent) {}
+hst::Test_Histogram::Test_Histogram(QObject* parent): QObject(parent) {}
 
-void Test_Histogram::initTestCase() {
+void hst::Test_Histogram::initTestCase() {
     qDebug() << "Starting tests for Histogram";
     qDebug() << "Initializing values...";
 
-    qcp = new QCustomPlot();
-//    H = new hst::Histogram(qcp);
+    H = new hst::Histogram();
+    qcp = H->customPlot;
 
     qDebug() << "Done!";
 }
 
-void Test_Histogram::setIntervals() {
+void hst::Test_Histogram::setIntervals() {
     std::vector<hst::Message> vec = {{1, 100}, {2, 200}, {3, 300}};
 
     QVERIFY_EXCEPTION_THROWN(H->addPlot({vec, 1}), std::runtime_error);
@@ -29,7 +29,7 @@ void Test_Histogram::setIntervals() {
     }
 }
 
-void Test_Histogram::addPlot() {
+void hst::Test_Histogram::addPlot() {
     std::vector<hst::Message> valVec =
     {{101, 1}, {243, 2}, {5, 3}, {67.3, 4}, {34, 5},
      {123, 6}, {-45, 7}, {-10, 8}, {10.8, 9}, {531, 10}};
@@ -55,7 +55,7 @@ void Test_Histogram::addPlot() {
     QCOMPARE(msgnums2, std::set<int>({100, 200, 300}));
 }
 
-void Test_Histogram::selectBars() {
+void hst::Test_Histogram::selectBars() {
     qcp->deselectAll();
     QCOMPARE(qcp->plottableCount(), 19);
     for(int i = 0; i < 3; i++) {
@@ -71,7 +71,7 @@ void Test_Histogram::selectBars() {
     }
 }
 
-void Test_Histogram::dataInIntervals() {
+void hst::Test_Histogram::dataInIntervals() {
     std::vector<int> intHeights = {6, 1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1};
     std::map<double, int> tickHeights;
     for(unsigned long long i = 0; i < intHeights.size(); i++) {
@@ -92,7 +92,7 @@ void Test_Histogram::dataInIntervals() {
     }
 }
 
-void Test_Histogram::changeIntervals() {
+void hst::Test_Histogram::changeIntervals() {
     H->setIntervals(0, 100);
     QCOMPARE(qcp->plottableCount(), 6);
     std::map<double, int> tickHeights = {{50, 7}, {150, 2}, {250, 1}, {350, 0}, {450, 0}, {550, 1}};
@@ -110,12 +110,11 @@ void Test_Histogram::changeIntervals() {
     }
 }
 
-void Test_Histogram::cleanupTestCase() {
+void hst::Test_Histogram::cleanupTestCase() {
     qDebug() << "Tests ended";
     qDebug() << "Deinitializing values...";
 
     delete H;
-    delete qcp;
 
     qDebug() << "Done";
 }

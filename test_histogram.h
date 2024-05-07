@@ -3,6 +3,8 @@
 #include <QObject>
 #include "Histogram.h"
 
+namespace hst {
+
 class Test_Histogram: public QObject {
     Q_OBJECT
     public:
@@ -18,7 +20,8 @@ class Test_Histogram: public QObject {
         void dataInIntervals();
         void changeIntervals();
         void cleanupTestCase();
-
 };
+
+}
 
 #endif // TEST_HISTOGRAM_H

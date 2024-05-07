@@ -16,7 +16,6 @@
  */
 
 
-
 //! \brief Определение вспомогательного типа данных для номеров источников и сообщений
 //! \details Этот тип данных представляет собой std::map.
 //! Ключ - номер источника, значение - множество номеров сообщений.
@@ -25,6 +24,8 @@ Q_DECLARE_METATYPE(MsgNumbersMap);
 
 //! \brief Пространство имён для классов и структур, необходимых для построения гистограмм.
 namespace hst {
+
+class Test_Histogram;
 
 const bool showDebugMessages = true;    //!< Когда включена выводит дополнительную информацию в qDebug()
 const int legendRowCount = 10;          //!< Максимальное количество элементов в легенде в одном столбце
@@ -173,6 +174,8 @@ public:
         QLabel* statusLabel = nullptr;
         QStatusBar* statusbar = nullptr;
         QVBoxLayout* layout;
+
+        friend class Test_Histogram;
     public slots:
         //! Слот для сброса масштаба
         void resetScale();
