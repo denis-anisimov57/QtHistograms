@@ -12,7 +12,7 @@
  * @file Histogram.h
  * @author Anisimov D
  * @brief Заголовочный файл для описания класса гистограмм
- * @date 07.05.2024
+ * @date 08.05.2024
  */
 
 /** \defgroup HistogramGroup Группа виджета гистограмм
@@ -55,8 +55,8 @@ struct Message {
 
 //! \brief Структура, описывающая данные полученные из источника
 struct Plot {
-    std::vector<Message> messages;  //!< messages Сообщения из источника
-    int sourcenum;                  //!< sourcenum Номер источника
+    std::vector<Message> messages;  //!< Сообщения из источника
+    int sourcenum;                  //!< Номер источника
 };
 
 //! \brief Структура, описывающая данные со всех полученных источников, а также значения для интервалов
